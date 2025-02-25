@@ -72,13 +72,18 @@ def main(args):
 
     deepseek_kwargs = {
         "api_key": os.getenv("DEEPSEEK_API_KEY"),
-        "api_base": os.getenv("DEEPSEEK_API_BASE", "https://api.deepseek.com"),
         "temperature": args.temperature,
         "top_p": args.top_p,
     }
 
-    # DeepSeek offers two main models: 'deepseek-chat' for general tasks and 'deepseek-coder' for coding tasks
-    # Users can choose the appropriate model based on their needs
+    # Configure API base URL based on model selection
+    if args.model == "deepseek-r1":
+        api_base = DeepSeekModel.SILICONFLOW_API_BASE_URL
+    else:
+        api_base = os.getenv("DEEPSEEK_API_BASE", DeepSeekModel.DEEPSEEK_API_BASE_URL)
+    deepseek_kwargs["api_base"] = api_base
+
+    # Initialize language model instances
     conv_simulator_lm = DeepSeekModel(
         model=args.model, max_tokens=500, **deepseek_kwargs
     )
@@ -191,9 +196,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model",
         type=str,
-        choices=["deepseek-chat", "deepseek-coder"],
+        choices=["deepseek-chat", "deepseek-coder", "deepseek-r1"],
         default="deepseek-chat",
-        help='DeepSeek model to use. "deepseek-chat" for general tasks, "deepseek-coder" for coding tasks.',
+        help='DeepSeek model to use. "deepseek-chat" for general tasks, "deepseek-coder" for coding tasks, "deepseek-r1" for R1 model hosted on SiliconFlow.',
     )
     parser.add_argument(
         "--temperature", type=float, default=1.0, help="Sampling temperature to use."

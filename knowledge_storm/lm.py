@@ -366,11 +366,15 @@ class OpenAIModel(dspy.OpenAI):
 class DeepSeekModel(dspy.OpenAI):
     """A wrapper class for DeepSeek API, compatible with dspy.OpenAI."""
 
+    # Default API base URLs for different providers
+    DEEPSEEK_API_BASE_URL = "https://api.deepseek.com" 
+    SILICONFLOW_API_BASE_URL = "https://api.siliconflow.com"
+
     def __init__(
         self,
         model: str = "deepseek-chat",
         api_key: Optional[str] = None,
-        api_base: str = "https://api.deepseek.com",
+        api_base: str = DEEPSEEK_API_BASE_URL,
         **kwargs,
     ):
         super().__init__(model=model, api_key=api_key, api_base=api_base, **kwargs)
@@ -378,7 +382,7 @@ class DeepSeekModel(dspy.OpenAI):
         self.prompt_tokens = 0
         self.completion_tokens = 0
         self.model = model
-        self.api_key = api_key or os.getenv("DEEPSEEK_API_KEY")
+        self.api_key = api_key or os.getenv("DEEPSEEK_API_KEY", "")
         self.api_base = api_base
         if not self.api_key:
             raise ValueError(
@@ -642,11 +646,16 @@ class GroqModel(dspy.OpenAI):
         giveup=giveup_hdlr,
     )
     def _create_completion(self, prompt: str, **kwargs):
-        """Create a completion using the Groq API."""
+        """Create a completion using the DeepSeek API."""
         headers = {
-            "Content-Type": "application/json",
+            "Content-Type": "application/json", 
             "Authorization": f"Bearer {self.api_key}",
         }
+
+        # Support DeepSeek-R1 model
+        if self.model == "deepseek-r1":
+            self.api_base = self.SILICONFLOW_API_BASE_URL
+            self.model = "deepseek-coder"
 
         # Remove unsupported fields
         kwargs.pop("logprobs", None)
@@ -655,7 +664,7 @@ class GroqModel(dspy.OpenAI):
 
         # Ensure N is 1 if supplied
         if "n" in kwargs and kwargs["n"] != 1:
-            raise ValueError("Groq API only supports N=1")
+            raise ValueError("DeepSeek API only supports N=1")
 
         # Adjust temperature if it's 0
         if kwargs.get("temperature", 1) == 0:
