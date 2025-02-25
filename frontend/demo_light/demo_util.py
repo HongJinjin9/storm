@@ -18,7 +18,7 @@ from knowledge_storm import (
     STORMWikiRunner,
     STORMWikiLMConfigs,
 )
-from knowledge_storm.lm import OpenAIModel
+from knowledge_storm.lm import DeepSeekModel
 from knowledge_storm.rm import YouRM
 from knowledge_storm.storm_wiki.modules.callback import BaseCallbackHandler
 from knowledge_storm.utils import truncate_filename
@@ -581,19 +581,26 @@ def set_storm_runner():
 
     # configure STORM runner
     llm_configs = STORMWikiLMConfigs()
-    llm_configs.init_openai_model(
-        openai_api_key=st.secrets["OPENAI_API_KEY"], openai_type="openai"
-    )
-    llm_configs.set_question_asker_lm(
-        OpenAIModel(
-            model="gpt-4-1106-preview",
-            api_key=st.secrets["OPENAI_API_KEY"],
-            api_provider="openai",
-            max_tokens=500,
-            temperature=1.0,
-            top_p=0.9,
-        )
-    )
+    deepseek_kwargs = {
+        "api_key": st.secrets["DEEPSEEK_API_KEY"],
+        "api_base": st.secrets["DEEPSEEK_BASE_URL"],
+        "temperature": 1.0,
+        "top_p": 0.9,
+        "max_tokens": 500 
+    }
+
+    conv_simulator_lm = DeepSeekModel(model=st.secrets["DEEPSEEK_MODEL"], **deepseek_kwargs)
+    question_asker_lm = DeepSeekModel(model=st.secrets["DEEPSEEK_MODEL"], **deepseek_kwargs)
+    outline_gen_lm = DeepSeekModel(model=st.secrets["DEEPSEEK_MODEL"], **deepseek_kwargs)
+    article_gen_lm = DeepSeekModel(model=st.secrets["DEEPSEEK_MODEL"], max_tokens=700, **deepseek_kwargs)
+    article_polish_lm = DeepSeekModel(model=st.secrets["DEEPSEEK_MODEL"], max_tokens=4000, **deepseek_kwargs)
+
+    llm_configs.set_conv_simulator_lm(conv_simulator_lm)
+    llm_configs.set_question_asker_lm(question_asker_lm)
+    llm_configs.set_outline_gen_lm(outline_gen_lm) 
+    llm_configs.set_article_gen_lm(article_gen_lm)
+    llm_configs.set_article_polish_lm(article_polish_lm)
+
     engine_args = STORMWikiRunnerArguments(
         output_dir=current_working_dir,
         max_conv_turn=3,
